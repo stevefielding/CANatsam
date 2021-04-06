@@ -39,6 +39,7 @@ cAcquireCAN::cAcquireCAN(ACQ_CAN_PORT _portNumber)
 	queryIndex   = 0;
 	RxCtr        = 0;
 	TxCtr        = 0;
+        queryIndex0  = false;
 
 	//set pointer reference to proper object for that physical port
 	portNumber = _portNumber;
@@ -198,8 +199,22 @@ void cAcquireCAN::runRates(ACQ_RATE_CAN rate)
 		{
 			//transmit the next message in the "query-response" queue,
 			//only send a single message to allow time for the node to respond before making another request
-			TXmsg(queryMsgs[queryIndex]);
-			queryIndex = (queryIndex == (msgCntQuery - 1)) ?  0 : queryIndex + 1;
+			//I did try sending 2 consecutive TXmsgs and the first one appears to be ignored.
+			//So, it appears that you have to wait for the response to be returned
+			//before sending the next tx qeury
+			//Serial.print("TX qeury 2: ");
+			//Serial.println(queryIndex);
+			//Qeury index 0 every other time slot. Cycle through all the indices in
+			//the alternate time slot.
+			if (queryIndex0) {
+			  queryIndex0 = false;
+			  TXmsg(queryMsgs[0]);
+			}
+			else {
+			  queryIndex0 = true;
+			  TXmsg(queryMsgs[queryIndex]);
+			  queryIndex = (queryIndex == (msgCntQuery - 1)) ?  0 : queryIndex + 1;
+			}
 		}
 
 	} else
@@ -272,7 +287,14 @@ void cAcquireCAN::RXmsg()
 	RX_CAN_FRAME newFrame;
 
 	//based upon the lower-level CAN library the get_rx_buff method appears to be critical 
-	noInterrupts();
+        // Interrupts are disabled for upto 12uS. This could be problematic for spi interface
+	// Just disabling Timer3 and CAN1 interrupts. Thus SPI interrupts can still be serviced.
+	// Tested at spi clock frequency of 1.8MHz and it appears to work OK.
+	//digitalWrite(38, HIGH);
+	NVIC_DisableIRQ(TC3_IRQn);
+	NVIC_DisableIRQ(CAN1_IRQn);
+	//noInterrupts();
+
 
 	//pull all data frames out of the buffer 
 	while (C->read(newFrame))
@@ -290,6 +312,8 @@ void cAcquireCAN::RXmsg()
 				//stuff the received  payload 
 				if (validFrame)
 				{
+			                //Serial.print("RXMsg index: ");
+	                	        //Serial.println(i);
 					///either NO PID OR PID's match so stuff it
 					rxMsgs[i]->U.b[0] = newFrame.data.byte[0];
 					rxMsgs[i]->U.b[1] = newFrame.data.byte[1];
@@ -307,7 +331,10 @@ void cAcquireCAN::RXmsg()
 			}
 		}
 	}
-	interrupts();
+	//interrupts();
+	NVIC_EnableIRQ(TC3_IRQn);
+	NVIC_EnableIRQ(CAN1_IRQn);
+        //digitalWrite(38, LOW);
 }
 
 /**

@@ -33,7 +33,8 @@ typedef unsigned long long UINT64;
 #define  MAX_NUM_RX_MSGS 30  
 
 //if implementing a query-response protocol (such as OBD2), delay this long (mS) in between requests
-#define  QUERY_MS 100  
+//#define  QUERY_MS 100  
+#define  QUERY_MS 20  
 
 /**
  *	forward declare the OBD class to the base class to support circular reference
@@ -339,6 +340,11 @@ private:
      */
     UINT32 RxCtr;
     UINT32 TxCtr;
+
+    /**
+    * Boolean indicator used to select index 0 on every other pas
+    */
+    bool queryIndex0;
 
     /**
      * these are the masks used by the CAN controller hardware to allow multiple messages to be received by one mailbox

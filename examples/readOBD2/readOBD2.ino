@@ -6,6 +6,8 @@ void setup()
   while(!Serial);
   Serial.println("Waiting for 3s");
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(39, OUTPUT); // PA2, R67 on Rev1.0
+  pinMode(38, OUTPUT); // PA3, R68 on Rev1.0
   pinMode(CAN_5V_EN, OUTPUT);
   digitalWrite(CAN_5V_EN, HIGH);  // Not required for OBD, but cannot access Pods RS485 without this voltage
   Serial.println("Starting setup");        
@@ -23,11 +25,11 @@ void loop()
   if ((loopCnt % 100000) == 0) {
     if (ledOn == false) {
       ledOn = true; 
-      digitalWrite(LED_BUILTIN, HIGH);
+      //digitalWrite(LED_BUILTIN, HIGH);
     }
     else {
       ledOn = false; 
-      digitalWrite(LED_BUILTIN, LOW);
+      //digitalWrite(LED_BUILTIN, LOW);
     }
   }  
   delay(1000);

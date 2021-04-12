@@ -379,5 +379,11 @@ private:
      * @return MAM mask file per STM hardware requirements 
      */
     U32 buildMAM(U32 ID);
+
+#define TX_FRAME_FIFO_SIZE 16
+    cCANFrame *txFrameFifo [TX_FRAME_FIFO_SIZE];
+    int txFrameFifoInd_in;
+    int txFrameFifoInd_out;
+
 };   
 #endif

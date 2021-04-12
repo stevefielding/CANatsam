@@ -40,6 +40,8 @@ cAcquireCAN::cAcquireCAN(ACQ_CAN_PORT _portNumber)
 	RxCtr        = 0;
 	TxCtr        = 0;
         queryIndex0  = false;
+        txFrameFifoInd_in = 0;
+        txFrameFifoInd_out = 0;
 
 	//set pointer reference to proper object for that physical port
 	portNumber = _portNumber;
@@ -225,7 +227,10 @@ void cAcquireCAN::runRates(ACQ_RATE_CAN rate)
 			//look for a valid pointer entry for this rate        
 			if (txMsgs[i]->rate == rate)
 			{
-				TXmsg(txMsgs[i]);
+                                txFrameFifo[txFrameFifoInd_in++] = txMsgs[i];
+				if (txFrameFifoInd_in >= TX_FRAME_FIFO_SIZE)
+				  txFrameFifoInd_in = 0;
+				//TXmsg(txMsgs[i]);
 			}
 		}   
 	}
@@ -429,6 +434,14 @@ void cAcquireCAN::run(ACQ_MODE mode)
 		//latch maximum value
 		usTsliceMax = usTslice > usTsliceMax ? usTslice : usTsliceMax;
 	}
+	// Service the TX frame fifo. Output one tx frame every pass
+	// This spaces out the TX frames and gives the receiving side a chance to read the frames
+	// The MCP2515 and ATMega combo is not able to read more than 2 back to back frames.
+	if (txFrameFifoInd_in != txFrameFifoInd_out) {
+	  TXmsg(txFrameFifo[txFrameFifoInd_out++]);
+	  if (txFrameFifoInd_out >= TX_FRAME_FIFO_SIZE)
+	    txFrameFifoInd_out = 0;
+	}	 
 }
 
 /**
